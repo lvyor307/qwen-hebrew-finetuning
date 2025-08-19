@@ -65,6 +65,11 @@ text_cleaning/             # Advanced text cleaning system
 ├── main.py                # Entry point for cleaning operations
 ├── simple_word_count_analyzer.py # Word counting analysis
 └── run_benchmark_cleaning.py # Benchmark cleaning performance
+
+minhash/                   # Distributed deduplication system
+├── minhash.py             # MinHash deduplication pipeline
+├── cluster.yaml           # Ray cluster configuration
+└── README.md              # Deduplication documentation
 ```
 
 ## Text Cleaning System
@@ -287,6 +292,72 @@ The system includes benchmarking tools for evaluating cleaning performance:
 ```bash
 python run_benchmark_cleaning.py --source hebrew_text --cleaner regex
 ```
+
+## MinHash Distributed Deduplication
+
+The repository includes a distributed deduplication system using MinHash signatures for Hebrew text data with Ray and AWS.
+
+### Prerequisites
+
+#### AWS Setup
+- AWS account with EC2 and S3 permissions
+- EC2 key pair named `ray-key`
+- Download `ray-key.pem` to `~/.ssh/`
+
+#### Local Setup
+```bash
+pip install ray[default]
+```
+
+### Environment Configuration
+
+Create `.env` file in `minhash/` directory:
+
+```bash
+AWS_ACCESS_KEY_ID=your_aws_access_key_here
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key_here
+AWS_DEFAULT_REGION=us-east-1
+```
+
+### Usage
+
+#### 1. Start Ray Cluster
+```bash
+ray up minhash/cluster.yaml
+```
+
+#### 2. Run Deduplication
+```bash
+ray submit minhash/cluster.yaml minhash/minhash.py
+```
+
+#### 3. Monitor & Shutdown
+```bash
+ray status          # Check cluster status
+ray logs            # View logs
+ray down minhash/cluster.yaml  # Shutdown cluster
+```
+
+### Pipeline Stages
+
+1. **Signature Generation**: Compute MinHash signatures
+2. **Bucket Matching**: Find potential duplicates
+3. **Cluster Creation**: Group duplicate documents
+4. **Filtering**: Remove duplicates, keep one per cluster
+
+### Output
+
+Results saved to S3:
+- `deduplicated_output/` - Final deduplicated dataset
+- `removed/` - Removed duplicates
+- `logs/` - Processing logs
+
+### Configuration
+
+Modify `minhash.py` for:
+- MinHash parameters (precision, buckets)
+- S3 paths and bucket names
+- Resource allocation (memory, CPU)
 
 ## Getting Started
 

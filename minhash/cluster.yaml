@@ -6,6 +6,9 @@ provider:
 
 max_workers: 100
 
+file_mounts:
+  "~/.env": "minhash/.env"
+
 auth:
     ssh_user: ubuntu
     ssh_private_key: ~/.ssh/ray-key.pem
@@ -33,6 +36,7 @@ setup_commands:
   - python3 -m pip install --upgrade pip
   - python3 -m pip install ray[default]
   - python3 -m pip install datatrove[ray,s3,processing] boto3 s3fs orjson spacy
-  - aws configure set aws_access_key_id AKIAZYOGLNF2SKYOINU6
-  - aws configure set aws_secret_access_key 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
-  - aws configure set default.region us-east-1
+  - source ~/.env
+  - aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+  - aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+  - aws configure set default.region "$AWS_DEFAULT_REGION"
