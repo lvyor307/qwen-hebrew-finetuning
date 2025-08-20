@@ -13,6 +13,18 @@ from datatrove.pipeline.writers.jsonl import JsonlWriter
 from datatrove.utils.hashing import HashConfig
 from datatrove.utils.typeshelper import Languages
 
+RUN_NAME = "run1"
+S3_MINHASH_BASE_PATH = f"s3://gepeta-datasets/dedupe/{RUN_NAME}"
+S3_LOGS_FOLDER = f"{S3_MINHASH_BASE_PATH}/logs"
+TOTAL_TASKS = 1000
+
+# this is the original data that we want to deduplicate
+INPUT_READER = JsonlReader(
+            data_folder="s3://gepeta-datasets/processed_cleaned_filtered/run_5_files",
+            recursive=True,  # will traverse all source_name_x folders
+            compression="gzip",
+            glob_pattern="*.jsonl.gz")
+
 def main():
     # connect to ray cluster
     ray.init(address="auto")
@@ -22,21 +34,6 @@ def main():
         num_buckets=14,
         hashes_per_bucket=8,
     )  # better precision -> fewer false positives (collisions)
-
-    S3_MINHASH_BASE_PATH = "s3://gepeta-datasets/dedupe/run1"
-
-    S3_LOGS_FOLDER = f"{S3_MINHASH_BASE_PATH}/logs"
-    LOCAL_LOGS_FOLDER = "logs/minhash"
-
-    TOTAL_TASKS = 1000
-
-    # this is the original data that we want to deduplicate
-    INPUT_READER = JsonlReader(
-                data_folder="s3://gepeta-datasets/processed_cleaned_filtered/run_5_files",
-                recursive=True,  # will traverse all source_name_x folders
-                compression="gzip",
-                glob_pattern="*.jsonl.gz",
-            )
 
     # stage 1 computes minhash signatures for each task (each task gets a set of files)
     stage1 = RayPipelineExecutor(
@@ -62,6 +59,9 @@ def main():
                 config=minhash_config,
             ),
         ],
+        workers=8,
+        cpus_per_task=1,
+        mem_per_cpu_gb=2,
         tasks=minhash_config.num_buckets,
         logging_dir=f"{S3_LOGS_FOLDER}/buckets",
         depends=stage1,

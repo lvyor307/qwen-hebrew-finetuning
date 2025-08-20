@@ -18,16 +18,16 @@ available_node_types:
     head_node:
         resources: {}
         node_config:
-            InstanceType: m5.large
+            InstanceType: r5.8xlarge
             ImageId: ami-0f20cc6143e3cdb84
             KeyName: ray-key
     worker_node:
         resources: {}
         node_config:
-            InstanceType: c5.large
+            InstanceType: r5.8xlarge
             ImageId: ami-0f20cc6143e3cdb84
             KeyName: ray-key
-        min_workers: 2
+        min_workers: 0
         max_workers: 90
 setup_commands:
   - sudo apt update -y
