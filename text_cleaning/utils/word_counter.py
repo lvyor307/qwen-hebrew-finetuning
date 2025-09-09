@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-Simple word counter for JSONL.GZ files in S3 bucket
+Simple word counter for JSONL.GZ and RAR files in S3 bucket
 """
 
 import boto3
 import gzip
 import json
 import argparse
+import rarfile
+import tempfile
+import os
 from typing import Dict, Any
 
 
@@ -75,10 +78,54 @@ def count_words_in_jsonl_gz(bucket: str, prefix: str) -> int:
     return total_words
 
 
+def count_words_in_rar(bucket: str, path: str, filename: str) -> int:
+    """
+    Load RAR file from S3, extract JSONL and count words
+    
+    Args:
+        bucket: S3 bucket name
+        path: S3 path/prefix
+        filename: RAR filename
+        
+    Returns:
+        Word count in JSONL files inside RAR
+    """
+    total_words = 0
+    s3_client = boto3.client('s3')
+    
+    # Construct the full S3 key
+    s3_key = f"{path}/{filename}"
+    
+    # Download the RAR file to a temporary location
+    with tempfile.NamedTemporaryFile(suffix='.rar', delete=False) as temp_rar:
+        response = s3_client.get_object(Bucket=bucket, Key=s3_key)
+        temp_rar.write(response['Body'].read())
+        temp_rar_path = temp_rar.name
+    
+    # Open the RAR file
+    with rarfile.RarFile(temp_rar_path, 'r') as rar:
+        for file_info in rar.infolist():
+            if file_info.filename.endswith('.jsonl'):
+                with rar.open(file_info.filename, 'r') as jsonl_file:
+                    for line in jsonl_file:
+                        line_str = line.decode('utf-8').strip()
+                        data = json.loads(line_str)
+                        
+                        # Get text directly from the 'text' field
+                        text = data['text']
+                        
+                        words = text.split()
+                        total_words += len(words)
+    
+    # Clean up temporary file
+    os.unlink(temp_rar_path)
+    
+    return total_words
+
+
 def main():
-    bucket = 'gepeta-datasets'
-    prefix = 'processed_cleaned_filtered/run_5_files'
-    total_words = count_words_in_jsonl_gz(bucket, prefix)
+    total_words = count_words_in_jsonl_gz(bucket='gepeta-datasets',
+                                     prefix='processed_cleaned_filtered/run_5_files')
     # Print final result
     print(f"Total words: {total_words:,}")
 

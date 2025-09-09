@@ -89,7 +89,7 @@ def main():
     stage4 = RayPipelineExecutor(
         pipeline=[
             INPUT_READER,
-            TokensCounter(),  # nice way to see how many tokens we had before and after deduplication
+            TokensCounter(),
             MinhashDedupFilter(
                 input_folder=f"{S3_MINHASH_BASE_PATH}/remove_ids",
                 exclusion_writer=JsonlWriter(f"{S3_MINHASH_BASE_PATH}/removed"),
